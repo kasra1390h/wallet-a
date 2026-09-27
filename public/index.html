@@ -1,0 +1,146 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>فروشگاه</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<style>
+:root{--bg:#0d1b2a;--p:#14283d;--a:#5eead4;--t:#eaf2f8;--m:#8aa0b4;--r:#ff7a7a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px Vazirmatn,Tahoma,sans-serif;padding-bottom:80px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1d3550}
+#rate{font-size:12px;color:var(--m);display:flex;align-items:center;gap:6px}#rate i{width:8px;height:8px;border-radius:50%;background:var(--a);animation:pulse 1.6s infinite}
+#rate.stale i{background:var(--r)}@keyframes pulse{50%{transform:scale(1.8);opacity:.4}}
+main{padding:14px;animation:in .35s cubic-bezier(.2,.9,.3,1.2)}@keyframes in{from{opacity:0;transform:translateY(14px)}}
+.note{background:var(--p);border-radius:12px;padding:10px 12px;color:var(--m);font-size:13px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:var(--p);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px;transition:transform .2s;position:relative;overflow:hidden}
+.ribbon{position:absolute;top:10px;left:-28px;background:#3aa0e8;color:#fff;font-size:10px;padding:2px 30px;transform:rotate(-45deg);z-index:2}
+.card:active{transform:scale(.97)}.anim{width:100%;aspect-ratio:1;max-width:130px;margin:auto}
+.stars{color:var(--a);font-weight:700}.toman{font-size:17px;font-weight:700;transition:color .3s}.toman.tick{color:var(--a)}
+input,button,select{font:inherit;border-radius:10px;border:1px solid #274766;background:#0f2135;color:var(--t);padding:8px;width:100%}
+button{background:var(--a);color:#062a26;border:0;font-weight:700;cursor:pointer;transition:transform .15s}button:active{transform:scale(.94)}
+button.g{background:#1d3550;color:var(--t)}button.d{background:var(--r);color:#3a0d0d}button:disabled{opacity:.4}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.col{display:flex;flex-direction:column;gap:10px}
+.li{background:var(--p);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;animation:in .3s}
+nav{position:fixed;bottom:0;inset-inline:0;background:#0a1522;display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:6px;border-top:1px solid #1d3550;overflow-x:auto}
+nav button{background:transparent;color:var(--m);padding:10px 4px;font-size:12px;width:auto;white-space:nowrap}nav button.on{background:#14283d;color:var(--a)}
+.bal{font-size:30px;font-weight:700;color:var(--a)}.err{color:var(--r);min-height:20px}
+.st{font-size:12px;padding:2px 8px;border-radius:8px;background:#1d3550;align-self:flex-start}
+.warn{background:#3a2210;color:#ffb66b;border-radius:10px;padding:8px;font-size:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<header><b id="bal">...</b><div id="rate"><i></i><span></span></div></header>
+<main id="v"></main>
+<nav id="nav"></nav>
+<script>
+const tg=window.Telegram&&Telegram.WebApp;tg&&(tg.ready(),tg.expand());
+const ER={LOW:'موجودی کیف پول کافی نیست',EMPTY:'سبد خالی است',OPEN:'یک درخواست باز دارید',NORATE:'نرخ دلار در دسترس نیست',
+ STALE_RATE:'نرخ دلار قدیمی است، چند لحظه صبر کن',QTY:'تعداد نامعتبر است',MIN50:'حداقل ۵۰ استارز',
+ RECIPIENT:'یوزرنیم گیرنده را درست وارد کن (۵ تا ۳۲ حرف/عدد)',STATE:'وضعیت درخواست تغییر کرده',FILE:'فقط عکس واقعی jpg یا png',
+ AMOUNT:'مبلغ نامعتبر',REASON:'دلیل را بنویسید',CARD:'شماره کارت نامعتبر است (باید ۱۶ رقمی و صحیح باشد)',
+ GIFT_GONE:'این گیفت درست همین الان تمام شد',RATE_LIMIT:'کمی صبر کن و دوباره امتحان کن',AUTH:'ورود تایید نشد، صفحه را دوباره باز کن',
+ FORBIDDEN:'اجازه دسترسی نداری',GIFT:'این گیفت در دسترس نیست',KIND:'نوع آیتم نامعتبر است',NONE:'پیدا نشد',VALUE:'مقدار نامعتبر',
+ KEY:'خطای داخلی، دوباره تلاش کن',BLOCKED:'حساب شما مسدود شده',MAINTENANCE:'فروشگاه موقتاً برای تعمیرات بسته است',
+ FEATURE_OFF:'این بخش موقتاً غیرفعال است',CART_EXPIRED:'قیمت بعضی آیتم‌های سبد منقضی شده، دوباره اضافه‌شان کن',LIMIT:'مقدار نامعتبر'};
+async function api(p,o={},raw){const h={'x-init':tg?tg.initData:''};if(!tg)h['x-dev']=localStorage.dev||'1';if(!raw)h['content-type']='application/json';
+ const r=await fetch('/api'+p,{...o,headers:h});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(ER[j.e]||j.e||'خطا');return j}
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+const f=n=>Number(n).toLocaleString('fa-IR'),$=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let me={},pr={},gifts=[],tab='shop',obs,key=null;
+const tabs=[['shop','گیفت'],['stars','استارز'],['cart','سبد'],['orders','سفارش‌ها'],['wallet','کیف پول']];
+const calc=(stars,q)=>{if(!pr.rate)return null;const b=Math.ceil(stars*q*pr.starUsd*pr.rate),fe=Math.ceil(b*pr.fee/100);return{b,fe,t:b+fe}};
+async function refresh(){try{[me,pr]=await Promise.all([api('/me'),api('/prices')])}catch(e){return}
+ $('bal').textContent='موجودی: '+f(me.balance)+' تومان';$('rate').className=pr.stale?'stale':'';
+ $('rate').lastChild.textContent=pr.rate?(pr.stale?'نرخ ممکن است چند لحظه بروز نباشد':'نرخ زنده: '+f(pr.rate)):'نرخ در دسترس نیست';
+ document.querySelectorAll('[data-s]').forEach(e=>{const c=calc(+e.dataset.s,+(e.dataset.q||1));if(c){const t=f(c.t)+' تومان';if(e.textContent!==t){e.textContent=t;e.classList.add('tick');setTimeout(()=>e.classList.remove('tick'),400)}}})}
+function nav(){$('nav').innerHTML=tabs.concat(me.admin?[['admin','ادمین']]:[]).map(([k,l])=>`<button class="${k==tab?'on':''}" onclick="go('${k}')">${l}</button>`).join('')}
+function go(t){tab=t;pg=1;render()}
+function anim(el,id){const a=lottie.loadAnimation({container:el,renderer:'svg',loop:true,autoplay:false,path:'/tgs/'+id});obs.observe(el);el._a=a}
+async function render(){const v=$('v');v.style.animation='none';v.offsetHeight;v.style.animation='';
+ if(me.maintenance&&tab!=='wallet'&&tab!=='admin')v.innerHTML='<div class="warn">فروشگاه موقتاً برای تعمیرات بسته است. کیف پول و مرور همچنان کار می‌کند.</div>';
+ if(tab=='shop')return shop(v);if(tab=='stars')return starsV(v);if(tab=='cart')return cartV(v);if(tab=='orders')return ordersV(v);if(tab=='wallet')return wallet(v);admin(v)}
+const OS={paid:'پرداخت شد، در صف پردازش',fulfilling:'در حال ارسال (تا ۴۸ ساعت)',delivered:'تحویل داده شد',failed:'ناموفق - در حال بررسی',refunded:'برگشت وجه شد',cancelled:'لغو شد'};
+async function ordersV(v){const o=await api('/orders');
+ v.innerHTML=o.length?`<div class="col">`+o.map(x=>`<div class="li"><span class="st">${OS[x.status]||esc(x.status)}</span><span>سفارش #${x.id} - ${f(x.total)} تومان</span>
+ ${x.items.map(i=>`<span>${i.kind=='gift'?'گیفت':'استارز'} ${f(i.stars)} استارز → ${esc(i.recipient)}</span>`).join('')}</div>`).join('')+'</div>':'<div class="note">هنوز سفارشی ثبت نکرده‌ای</div>'}
+async function shop(v){if(!(me.features&&me.features.gifts))return v.innerHTML='<div class="note">فروش گیفت موقتاً غیرفعال است.</div>';
+ gifts=await api('/gifts');
+ v.innerHTML=`<div class="note">تحویل گیفت‌ها تا ۴۸ ساعت زمان می‌برد. فقط گیفت‌هایی که همین الان در تلگرام قابل خریدند اینجا نشان داده می‌شوند.</div><div class="grid">`+gifts.map((g,i)=>`<div class="card">${g.left!=null?'<span class="ribbon">محدود</span>':''}<div class="anim" id="a${i}"></div>
+ <span class="stars">${f(g.stars)} استارز</span><span class="toman" data-s="${g.stars}">...</span>
+ <input id="r${i}" placeholder="@username گیرنده"><input id="m${i}" placeholder="پیام (اختیاری)">
+ <div class="row"><input id="q${i}" type="number" min="1" value="1"><button onclick="add('gift',${i})">افزودن به سبد</button></div></div>`).join('')+'</div>';
+ obs&&obs.disconnect();obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting?e.target._a.play():e.target._a.pause()));
+ gifts.forEach((g,i)=>anim($('a'+i),g.id));refresh()}
+function starsV(v){if(!(me.features&&me.features.stars))return v.innerHTML='<div class="note">فروش استارز موقتاً غیرفعال است.</div>';
+ v.innerHTML=`<div class="note">قیمت بر اساس نرخ لحظه‌ای دلار و کارمزد محاسبه می‌شود.</div><div class="col">
+ <input id="n" type="number" min="50" placeholder="تعداد استارز" oninput="sq()"><input id="r" placeholder="@username گیرنده">
+ <div class="li" id="qt">تعداد را وارد کنید</div><button onclick="add('stars')">افزودن به سبد</button><div class="err" id="e"></div></div>`}
+function sq(){const n=+$('n').value,c=n>=1&&calc(1,n);$('qt').innerHTML=c?`<span>${f(n)} استارز = ${f(n*pr.starUsd)} دلار</span><span>قیمت پایه: ${f(c.b)}</span><span>کارمزد (${pr.fee}٪): ${f(c.fe)}</span><b class="toman">${f(c.t)} تومان</b>`:'تعداد را وارد کنید'}
+async function add(kind,i){const e=$('e');try{const b=kind=='gift'?{kind,gift_id:gifts[i].id,qty:$('q'+i).value,recipient:$('r'+i).value,message:$('m'+i).value}:{kind,qty:$('n').value,recipient:$('r').value};
+ await post('/cart',b);tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred('success');go('cart')}catch(x){e?e.textContent=x.message:alert(x.message)}}
+async function cartV(v){const c=await api('/cart'),t=c.reduce((a,i)=>a+i.total,0),fe=c.reduce((a,i)=>a+i.fee,0);
+ v.innerHTML=c.length?`<div class="col">`+c.map(i=>`<div class="li"><b>${i.kind=='gift'?'گیفت':'استارز'} - ${f(i.stars)} استارز</b><span>گیرنده: ${esc(i.recipient)}</span>
+ <span>پایه ${f(i.base)} + کارمزد ${f(i.fee)} = ${f(i.total)} تومان</span><span>قفل قیمت تا ${new Date(i.expires).toLocaleTimeString('fa-IR')}</span><button class="g" onclick="del(${i.id})">حذف</button></div>`).join('')+
+ `<div class="li"><span>جمع کارمزد: ${f(fe)}</span><b class="toman">جمع کل: ${f(t)} تومان</b><span>قیمت‌ها ۱۰ دقیقه از لحظه افزودن قفل می‌مانند.</span></div>`+
+ (me.balance>=t?`<button id="pay" onclick="pay()">پرداخت از کیف پول</button>`:`<div class="err">کمبود موجودی: ${f(t-me.balance)} تومان</div><button onclick="go('wallet')">شارژ کیف پول</button>`)+`<div class="err" id="e"></div></div>`:'<div class="note">سبد خالی است</div>'}
+async function del(id){await api('/cart/'+id,{method:'DELETE'});render()}
+async function pay(){key=key||crypto.randomUUID();$('pay').disabled=true;try{await post('/checkout',{key});key=null;await refresh();$('v').innerHTML='<div class="li"><b>سفارش ثبت شد</b><span>تحویل تا ۴۸ ساعت زمان می‌برد.</span></div>'}catch(x){$('e').textContent=x.message;$('pay').disabled=false;if(x.message.includes('منقضی'))render()}}
+async function wallet(v){const t=await api('/topups'),TS={requested:'در انتظار شماره کارت',card_sent:'کارت ارسال شد',receipt_uploaded:'فیش در انتظار تایید',approved:'تایید شد',rejected:'رد شد',cancelled:'لغو شد'};
+ v.innerHTML=`<div class="col"><div class="bal">${f(me.balance)} تومان</div>`+(me.features&&me.features.topup?`<button onclick="rq()">درخواست شماره کارت</button>`:'<div class="note">شارژ کیف پول موقتاً غیرفعال است.</div>')+
+ `<button class="g" onclick="stmt()">تاریخچه کامل تراکنش‌ها</button><div id="stmtv"></div><div class="err" id="e"></div>`+t.map(x=>`<div class="li"><span class="st">${TS[x.status]}</span><span>کد رهگیری: ${esc(x.code)}</span>
+ ${x.status=='card_sent'?`<b>${esc(x.card)}</b><span>${esc(x.note)}</span><span>در توضیح واریز، کد رهگیری را بنویسید.</span><input type="file" accept="image/jpeg,image/png" onchange="upl(${x.id},this)"><button class="g" onclick="cxl(${x.id})">لغو درخواست</button>`:''}
+ ${x.status=='requested'?`<button class="g" onclick="cxl(${x.id})">لغو درخواست</button>`:''}
+ ${x.status=='approved'?`<b>${f(x.amount)} تومان شارژ شد</b>`:''}${x.status=='rejected'?`<span class="err">${esc(x.reason)}</span>`:''}</div>`).join('')+'</div>'}
+const TT={topup:'شارژ',purchase:'خرید',refund:'برگشت وجه'};
+async function stmt(){const l=await api('/wallet/statement');
+ $('stmtv').innerHTML=l.map(x=>`<div class="li"><span>${TT[x.type]||esc(x.type)} — ${x.amount>0?'+':''}${f(x.amount)} تومان</span><span>موجودی: ${f(x.bal_before)} → ${f(x.bal_after)}</span><span>${new Date(x.at).toLocaleString('fa-IR')}</span></div>`).join('')||'<div class="note">تراکنشی ثبت نشده</div>'}
+async function rq(){try{await post('/topup');wallet($('v'))}catch(x){$('e').textContent=x.message}}
+async function cxl(id){await post(`/topup/${id}/cancel`);wallet($('v'))}
+async function upl(id,el){const fd=new FormData();fd.append('f',el.files[0]);try{await api(`/topup/${id}/receipt`,{method:'POST',body:fd},1);wallet($('v'))}catch(x){alert(x.message)}}
+let pg=1,searchTerm='';
+async function admin(v){const [t,o,s,d]=await Promise.all([api('/admin/topups'+(searchTerm?'?q='+encodeURIComponent(searchTerm):'')),
+ api('/admin/orders?page='+pg+'&limit=20'),api('/admin/settings'),api('/admin/dashboard')]);
+ v.innerHTML=`<div class="col">
+ <div class="li"><b>آمار</b><div class="stat-grid">
+  <span>فروش امروز: ${f(d.today.t)} (${d.today.c})</span><span>فروش هفته: ${f(d.week.t)}</span>
+  <span>فروش ماه: ${f(d.month.t)}</span><span>برگشتی ماه: ${f(d.refunds_month.t)} (${d.refunds_month.c})</span>
+  <span>شارژ در انتظار: ${d.pending_topups}</span><span>سفارش در انتظار: ${d.pending_orders}</span>
+  <span>گیفت موجود: ${d.gifts_available}</span><span>نرخ: ${d.rate_ok?'سالم':'قطع'}</span>
+ </div></div>
+ <div class="li"><b>تنظیمات</b><input id="sf" type="number" value="${s.fee}" placeholder="کارمزد درصد">
+ <input id="ss" type="number" step="0.001" value="${s.starUsd}" placeholder="قیمت دلاری هر استارز (چک کن با fragment.com)">
+ <span class="st">منبع استارز: ${s.star_usd_source=='telegram'?'خودکار از خود تلگرام':'دستی'} — خطا: ${s.star_errors}</span>
+ <input id="sr" type="number" value="${s.rate}" placeholder="نرخ دلار دستی (تومان)">
+ <span class="st">منبع دلار: ${esc(s.rate_provider||'-')} — خطا: ${s.rate_errors}</span>
+ <button onclick="sv()">ذخیره</button>
+ <div class="row"><button class="${s.maintenance?'d':'g'}" onclick="A('/admin/settings',{maintenance:${s.maintenance?0:1}})">${s.maintenance?'خاموش‌کردن حالت تعمیرات':'روشن‌کردن حالت تعمیرات'}</button></div>
+ <div class="row">
+  <button class="${s.features.gifts?'':'d'}" onclick="A('/admin/settings',{feature_gifts:${s.features.gifts?0:1}})">گیفت: ${s.features.gifts?'فعال':'غیرفعال'}</button>
+  <button class="${s.features.stars?'':'d'}" onclick="A('/admin/settings',{feature_stars:${s.features.stars?0:1}})">استارز: ${s.features.stars?'فعال':'غیرفعال'}</button>
+  <button class="${s.features.topup?'':'d'}" onclick="A('/admin/settings',{feature_topup:${s.features.topup?0:1}})">شارژ: ${s.features.topup?'فعال':'غیرفعال'}</button>
+ </div></div>
+ <div class="li"><b>خروجی CSV</b><div class="row">
+  <button class="g" onclick="location.href='/api/admin/export/orders?x='+Date.now()">سفارش‌ها</button>
+  <button class="g" onclick="location.href='/api/admin/export/topups?x='+Date.now()">شارژها</button>
+  <button class="g" onclick="location.href='/api/admin/export/ledger?x='+Date.now()">لجر</button>
+ </div></div>
+ <div class="li"><input placeholder="جستجو: کد/آیدی/یوزرنیم" value="${esc(searchTerm)}" onchange="searchTerm=this.value;admin($('v'))"></div>`+
+ t.map(x=>`<div class="li"><span class="st">${esc(x.status)}</span><span>کاربر ${+x.user_id} @${esc(x.username)} کد ${esc(x.code)}</span>
+ ${x.status=='requested'?`<button onclick="ac(${x.id})">ارسال شماره کارت</button>`:''}
+ ${x.status=='receipt_uploaded'?`<img id="im${x.id}" style="width:100%;border-radius:10px"><button class="g" onclick="im(${x.id})">نمایش فیش</button><button onclick="ap(${x.id})">تایید و ثبت مبلغ</button><button class="g" onclick="rj(${x.id})">رد</button>`:''}</div>`).join('')+
+ o.map(x=>`<div class="li"><b>سفارش ${x.id}: ${f(x.total)} (کارمزد ${f(x.fee)}) ${esc(x.status)}</b>${x.items.map(i=>`<span>${esc(i.kind)} ${esc(i.gift_id||'')} x${+i.qty} به ${esc(i.recipient)} ${esc(i.message||'')}</span>`).join('')}
+ <div class="row">${x.status=='paid'?`<button onclick="A('/admin/order/${x.id}/fulfilling')">شروع ارسال</button><button class="d" onclick="A('/admin/order/${x.id}/fail')">ناموفق</button>`:''}
+ ${x.status=='fulfilling'?`<button onclick="A('/admin/order/${x.id}/done')">تحویل شد</button><button class="d" onclick="A('/admin/order/${x.id}/fail')">ناموفق</button>`:''}
+ ${['paid','fulfilling','delivered','failed'].includes(x.status)?`<button class="g" onclick="rf(${x.id})">برگشت وجه</button>`:''}</div></div>`).join('')+
+ `<div class="row"><button class="g" onclick="pg=Math.max(1,pg-1);admin($('v'))">صفحه قبل</button><span class="st">صفحه ${pg}</span><button class="g" onclick="pg++;admin($('v'))">صفحه بعد</button></div>`+
+ '</div>'}
+const A=async(p,b)=>{try{await post(p,b);admin($('v'))}catch(x){alert(x.message)}};
+const sv=()=>A('/admin/settings',{fee:$('sf').value,star_usd:$('ss').value,rate:$('sr').value});
+const ac=id=>{const c=prompt('شماره کارت');c&&A(`/admin/topup/${id}/card`,{card:c,note:prompt('توضیح')||''})};
+const ap=id=>{const a=prompt('مبلغ نهایی (تومان)');a&&A(`/admin/topup/${id}/approve`,{amount:a})};
+const rj=id=>{const r=prompt('دلیل رد');r&&A(`/admin/topup/${id}/reject`,{reason:r})};
+const rf=id=>confirm('مبلغ سفارش به کیف پول کاربر برگردانده شود؟')&&A(`/admin/order/${id}/refund`);
+async function im(id){const r=await fetch('/api/admin/receipt/'+id,{headers:tg?{'x-init':tg.initData}:{'x-dev':localStorage.dev||'1'}});$('im'+id).src=URL.createObjectURL(await r.blob())}
+(async()=>{await refresh();nav();render();setInterval(refresh,10000)})();
+</script></body></html>
